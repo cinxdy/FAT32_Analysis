@@ -149,7 +149,7 @@ class FAT
     }
 
 };
-enum class ATTR
+enum  ATTR
     {
         READ_ONLY,
         HIDDEN ,
@@ -197,7 +197,7 @@ class INode
 
         first_cluster = first_cluster_high << 0x16 | first_cluster_low;
         // cout << hex << first_cluster_high <<" "<< first_cluster_low<<endl;
-        // cout << hex << first_cluster <<endl;
+        cout << "First Cluster: " << hex << first_cluster <<endl;
         // bb.debug_it();
 
         // if(get_ATTR()==ATTR::DIR) Children (new INode(buffer, size));
@@ -267,7 +267,7 @@ class FileSystem
         fread(buffer, br->FAT1_area_size, 1, fp);
         
         fat = new FAT(buffer, br->FAT1_area_size);
-        cout << fat->to_s() << endl;
+        // cout << fat->to_s() << endl;
         delete[] buffer;
 
         // Data Inode
@@ -280,8 +280,10 @@ class FileSystem
     }
 
     bool expand(INode* node)
-    {   cout<<"expand starts"<<node->title.c_str()<<endl;
+    {   cout<<"expand starts "<<node->title.c_str()<<endl;
         uint8_t buff[32]; 
+
+        cout << "expand: ATTR:: " << node->get_ATTR() << endl;
         
         if(node->get_ATTR()==ATTR::ARCHIVE)
         {
@@ -292,6 +294,7 @@ class FileSystem
         {   
             // fseek(fp, br->data_area_offset + br->cluster_size*(node->first_cluster - br->root_directory_cluster), SEEK_SET);
             fseek(fp, br->data_area_offset, SEEK_SET);
+            fseek(fp, 32, SEEK_CUR);
         }
         else if(node->get_ATTR()==ATTR::DIR)
         {
@@ -310,7 +313,7 @@ class FileSystem
 
             INode child(buff,32);
             node->children.push_back(child);
-            cout << "push_back: succeed"<<endl;
+            // cout << "push_back: succeed"<<endl;
             // child->set_child_offset(br->data_area_offset + br->cluster_size*(child->first_cluster-br->root_directory_cluster));
         }
         
