@@ -7,16 +7,16 @@
 
 # Implementation
 - File System (FAT32)
-  - BootRecord
-  - FAT
-  - INode
-  - Enum (ENTRY_KIND, ATTR)
-  - LFN Entry (Long File Name)
-  - Export LEAF.JPG
+- BootRecord
+- FAT
+- INode
+- Enum (ENTRY_KIND, ATTR)
+- LFN Entry (Long File Name)
+- Show all the files
+- Export LEAF.JPG
+- Export PORT.JPG
 
 # To implement
-- Show all
-- Export PORT.JPG
 - CMAKE
 
 # Library used

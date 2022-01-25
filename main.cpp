@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <string>
+#include <algorithm>
 
 using namespace std;
 
@@ -433,101 +434,52 @@ class FileSystem
         for (int i=0;i<parent->children.size();i++)
             expand_all(&parent->children[i]);
     }
+    void show_node(INode* node)
+    {
+        if(node->get_ATTR()!=ATTR::ARCHIVE)
+            printf("/%s",node->title.c_str());
+        else 
+            printf("/%s.%s", node->title.c_str(),node->extension.c_str());
+    }
 
     // printf all the files
-    bool show_all(INode* parent, vector<INode*> visited)
+    void show_all(INode* parent, vector<INode*> visited)
     {   
         int children_cnt = parent->children.size();
 
-        bool exist = false, exist_child = true;
+        // check visited
+        bool visited_this = find(visited.begin(), visited.end(), parent) != visited.end();
 
-        for(int j=0;j<visited.size();j++)
-        {   
-            if(visited[j] == parent) exist = true;
-        }
-        if(exist) return true;
-        
+        // if visited, done;
+        if(visited_this)  return ;
+
+        show_node(parent);
+
+        // children exist
+        bool visited_children=true;
         int i=0;
+
+        // check visited children
         for(i=0;i<children_cnt;i++)
-        {
-            for(int j=0;j<visited.size();j++)
-            {   
-                if(visited[j] != &parent->children[i]) {
-                    exist_child = false;
-                    break;
-                }
-            }
-            if(!exist_child) break;
+        {   
+            visited_children = (find(visited.begin(), visited.end(), &parent->children[i]) != visited.end());
+            if(!visited_children) break;
         }
 
-        if(exist_child)
+        // visited all the children or leaf node
+        if(visited_children)
         {
             visited.push_back(parent);
-            return true;
-        }
-           
-        
-        if(parent->get_ATTR()!=ATTR::ARCHIVE)
-        {
-            printf("/%s",parent->title.c_str());
-            if(children_cnt!=0)
-                show_all(&parent->children[i],visited);
-            // visited.push_back(parent);
-        }
-        else 
-        {       
-            printf("/%s.%s", parent->title.c_str(),parent->extension.c_str());
-            visited.push_back(parent);
-        }
-
-        if(children_cnt==0)
-        {
             printf("\n");
-            return show_all(rootNode, visited);
+            show_all(rootNode, visited); // refresh
         }
-            
+        // not yet visited i-th child
+        else
+        {   
+            show_all(&parent->children[i], visited);
+        }
 
-        // return false;
-
-        // in case it is a leaf node
-        // if(children_cnt == 0) 
-        // {
-
-        //     printf("\n");
-            
-        //     // visited check
-        //     visited.push_back(parent);
-
-        //     // go back to root node
-        //     show_all(rootNode, visited);
-        //     return ;
-        // }
-
-        // for(int i=0;i<children_cnt;i++)
-        // {   
-        //     bool exist = false;
-
-        //     for(int j=0;j<visited.size();j++)
-        //     {   
-        //         if(visited[j]==&parent->children[i]) exist = true;
-        //     }
-
-        //     if(exist)
-        //     {
-                
-        //     }
-        //     else
-        //     {
-        //         // if(parent->children[i].get_ATTR()!=ATTR::ARCHIVE)
-        //         //     printf("/%s",parent->children[i].title.c_str());
-        //         // else 
-        //         //     printf("/%s.%s", parent->children[i].title.c_str(),parent->children[i].extension.c_str());
-
-        //         show_all(&parent->children[i],visited);
-        //         // break;
-        //         return ;
-        //     }
-        // }
+        return ;
     }
 
     bool exportTo(string path)
@@ -600,17 +552,21 @@ class FileSystem
         //     else return get_node(&node->children[i], pathList);
         // }
         // return NULL;
-        
-        for(int i=0;i<node->children.size();i++)
-        {   
-            if(node->children[i].title.compare(pathList[0])==0)
-            {
-                pathList.erase(pathList.begin());
-                if(pathList.size()==0) return &node->children[i];
-                else return get_node(&node->children[i], pathList);
+
+        if(node->title.compare(pathList[0])==0)
+        {
+            pathList.erase(pathList.begin());
+            if(pathList.size()==0) return node;
+            else 
+            {   
+                for(int i=0;i<node->children.size();i++)
+                {
+                    INode* child_node = get_node(&node->children[i],pathList);
+                    if(child_node != NULL) return child_node;
+                }
+                    
             }
         }
-
         return NULL;
     }
 };
@@ -635,7 +591,7 @@ int main(int argc, char** argv)
     fs.expand_all();
 
     // for(int i=0;i<fs.rootNode->children[1].children.size();i++)
-    //     cout << fs.rootNode->children[1].children[i].title << endl;
+        // cout << fs.rootNode->children[2].title << endl;
     bool ing = true;
     while(ing)
     {
