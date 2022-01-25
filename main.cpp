@@ -3,6 +3,7 @@
 #include <iostream>
 #include <sstream>
 #include <vector>
+#include <string>
 
 using namespace std;
 
@@ -91,12 +92,12 @@ class FAT
     public:
      enum class ENTRY_KIND 
      {
+            UNKNOWN=0,
             NOT_ALLOCATED,
             EXIST,
             RESERVED,
             BAD_SECTOR,
             FILE_END,
-            UNKNOWN
         };
 
     FAT(uint8_t* buffer, int size)
@@ -142,31 +143,57 @@ class FAT
     {
         stringstream sstream;
         string res="";
-        for (int i=0;i<10;i++)
+        for (int i=7;get_entry_kind(i)==ENTRY_KIND::EXIST;i++)
             sstream << i <<"th: " << hex << get_FAT_entry(i) << endl;
         res = sstream.str();
         return res;
     }
 
 };
-enum  ATTR
+
+
+
+class LFNNode
+{   
+    public:
+    string title;
+
+    LFNNode(uint8_t* buffer, int size)
     {
-        READ_ONLY,
-        HIDDEN ,
-        SYSTEM ,
-        VOLUMN ,
-        LFN ,
-        DIR ,
-        ARCHIVE ,
-        DEVICE ,
-        RESERVED ,
-        UNKNOWN
-    };
+        ByteBuffer2 bb(buffer,size);
+        bb.skip(1);
+        string title1                   = bb.get_unicode16_le(5);
+        bb.skip(3);
+        string title2                   = bb.get_unicode16_le(6);
+        bb.skip(2);
+        string title3                   = bb.get_unicode16_le(2);
+
+        title = title1+title2+title3;
+        // cout << title << endl;
+    }
+
+    string to_s(){
+        return title;
+    }
+};
+
+enum  ATTR
+{
+    UNKNOWN=0,
+    READ_ONLY,
+    HIDDEN ,
+    SYSTEM ,
+    VOLUMN ,
+    LFN ,
+    DIR ,
+    ARCHIVE ,
+    DEVICE ,
+    RESERVED ,
+};
+
 class INode
 {
     public:
-
-    
 
     string title;
     string extension;
@@ -182,9 +209,23 @@ class INode
         ByteBuffer2 bb(buffer,size);
 
         title                   = bb.get_ascii(8);
+        for(int i=title.length()-1;i>=0;i--)
+        {
+            if(title[i]==0x20) title.erase(i);
+            else break;
+        }
+
+        // title.erase(title.end());
         // bb.debug_it();
         extension               = bb.get_ascii(3);
-        printf("\n%s . %s\n", title.c_str(),extension.c_str());
+        
+        for(int i=extension.length()-1;i>=0;i--)
+        {
+            if(extension[i]==0x20) extension.erase(i);
+            else break;
+        }
+        // cout << "\n" << title +"." +extension + "\n";
+        printf("\n%s.%s\n", title.c_str(),extension.c_str());
         // cout<<extension<<endl;
         // bb.debug_it();
         attr                    = bb.get_uint8();
@@ -195,17 +236,47 @@ class INode
         bb.skip(4);
         auto first_cluster_low  = bb.get_int16_le();
 
+        file_size = bb.get_uint32_le();
+
         first_cluster = first_cluster_high << 0x16 | first_cluster_low;
         // cout << hex << first_cluster_high <<" "<< first_cluster_low<<endl;
         cout << "First Cluster: " << hex << first_cluster <<endl;
         // bb.debug_it();
-
+        //  cout << "\n" << title.c_str() << "." << extension.c_str() <<endl;
         // if(get_ATTR()==ATTR::DIR) Children (new INode(buffer, size));
-    }
+
+        // cout << this->to_s() << endl;
+    };
     
-    void set_child_offset(uint8_t new_offset){
-        offset = new_offset;
-    }
+    // INode(uint8_t* buffer, int size, vector<LFNNode> lfnList)
+    // {
+    //     ByteBuffer2 bb(buffer,size);
+
+    //     title                   = bb.get_ascii(8);
+    //     // bb.debug_it();
+    //     extension               = bb.get_ascii(3);
+    //     printf("\n%s . %s\n", title.c_str(),extension.c_str());
+    //     // cout<<extension<<endl;
+    //     // bb.debug_it();
+    //     attr                    = bb.get_uint8();
+
+    //     bb.skip(8);
+    //     auto first_cluster_high = bb.get_int16_le();
+        
+    //     bb.skip(4);
+    //     auto first_cluster_low  = bb.get_int16_le();
+
+    //     first_cluster = first_cluster_high << 0x16 | first_cluster_low;
+    //     // cout << hex << first_cluster_high <<" "<< first_cluster_low<<endl;
+    //     cout << "First Cluster: " << hex << first_cluster <<endl;
+    //     // bb.debug_it();
+
+    // }
+
+
+    // void set_child_offset(uint8_t new_offset){
+    //     offset = new_offset;
+    // }
 
     ATTR get_ATTR()
     {
@@ -225,18 +296,26 @@ class INode
         }
     } 
     
+    void set_lfn(vector<LFNNode> lfnList){
+        title="";
+        for(int i=lfnList.size()-1;i>=0;i--)
+        {
+            title.append(lfnList[i].title) ;
+        }
 
-    // string to_s(){
-    //     char buf[1024] = { 0 };
-        // sprintf(buf, "Title: %s . %x", title+'\0', extension+'\0');
-    //     return buf;
-    // }
+        cout << "INode> title: " << title << endl;
+    }
+
+    string to_s(){
+        string res="";
+        res += "title:"+ title + "." + extension;
+        return res;
+        // char buf[1024] = { 0 };
+        // sprintf(buf, "Title: %s.%s", title.c_str(), extension.c_str());
+        // return buf;
+    }
 };
 
-// class DataList{
-//     public:
-
-// }
 
 class FileSystem
 {
@@ -250,49 +329,53 @@ class FileSystem
         this->fp = fp;
     }
 
-    void BuildFileSystem()
+    bool BuildFileSystem()
     {
-        int size = 0x60;
-        uint8_t* buffer = new uint8_t[size];
+        try
+        {
+            int size = 0x60;
+            uint8_t* buffer = new uint8_t[size];
 
-        // Boot Record
-        fread(buffer, size, 1, fp);
-        br = new BootRecord(buffer, size);
-        cout << br->to_s() << endl;
-        delete[] buffer;
+            // Boot Record
+            fread(buffer, size, 1, fp);
+            br = new BootRecord(buffer, size);
+            cout << br->to_s() << endl;
+            delete[] buffer;
 
-        // FAT
-        buffer = new uint8_t[br->FAT1_area_size];
-        fseek(fp, br->FAT1_area_offset, SEEK_SET);
-        fread(buffer, br->FAT1_area_size, 1, fp);
-        
-        fat = new FAT(buffer, br->FAT1_area_size);
-        // cout << fat->to_s() << endl;
-        delete[] buffer;
+            // FAT
+            buffer = new uint8_t[br->FAT1_area_size];
+            fseek(fp, br->FAT1_area_offset, SEEK_SET);
+            fread(buffer, br->FAT1_area_size, 1, fp);
+            
+            fat = new FAT(buffer, br->FAT1_area_size);
+            cout << fat->to_s() << endl;
+            delete[] buffer;
 
-        // Data Inode
-        buffer = new uint8_t[32];
-        fseek(fp, br->data_area_offset, SEEK_SET);
-        fread(buffer, 32, 1, fp);
-        rootNode = new INode(buffer, 32);
-        // rootNode->set_child_offset(br->data_area_offset + br->cluster_size*(rootNode->first_cluster-br->root_directory_cluster));
-        delete[] buffer;
-    }
-
-    bool expand(INode* node)
-    {   cout<<"expand starts "<<node->title.c_str()<<endl;
-        uint8_t buff[32]; 
-
-        cout << "expand: ATTR:: " << node->get_ATTR() << endl;
-        
-        if(node->get_ATTR()==ATTR::ARCHIVE)
+            // Data Inode
+            buffer = new uint8_t[32];
+            fseek(fp, br->data_area_offset, SEEK_SET);
+            fread(buffer, 32, 1, fp);
+            rootNode = new INode(buffer, 32);
+            // rootNode->set_child_offset(br->data_area_offset + br->cluster_size*(rootNode->first_cluster-br->root_directory_cluster));
+            delete[] buffer;
+        }
+        catch(int e)
         {
             return false;
         }
+        return true;
+    }
+
+    bool expand(INode* node)
+    {   
+        uint8_t buff[32]; 
+        // cout << "expand> title: " << node->title.c_str() << endl;
+        // cout << "expand> ATTR: " << node->get_ATTR() << endl;
+        
+        // if(node->get_ATTR()==ATTR::ARCHIVE) return false;
         
         if(node->get_ATTR()==ATTR::VOLUMN)
         {   
-            // fseek(fp, br->data_area_offset + br->cluster_size*(node->first_cluster - br->root_directory_cluster), SEEK_SET);
             fseek(fp, br->data_area_offset, SEEK_SET);
             fseek(fp, 32, SEEK_CUR);
         }
@@ -304,31 +387,32 @@ class FileSystem
 
         while(true)
         {   
-            // cout << "offset: " << hex<< br->data_area_offset  + br->cluster_size*(node->first_cluster - br->root_directory_cluster)<<endl;
-            // cout << "file pointer offset: " << hex << fp->_ptr <<endl;
-
             fread(buff, 32, 1, fp);
-            // for(int i=0;i<32;i++) cout<< hex<< buff[i] <<" ";
-            if(buff[0]==0x00) break;
+            // cout << "What is buff[0] :" << hex << buff[0] << endl;
+            if(buff[0]==0x00 ) break; // if entry is the end
+            if(buff[0]==0x2E) continue; // if entry is not active
 
-            INode child(buff,32);
-            node->children.push_back(child);
-            // cout << "push_back: succeed"<<endl;
-            // child->set_child_offset(br->data_area_offset + br->cluster_size*(child->first_cluster-br->root_directory_cluster));
+            if(buff[0x0b]==0x0f) // if entry is LFN
+            {   
+                vector<LFNNode> lfnList;
+                int i=0;
+                while(true)
+                {   
+                    LFNNode lfn(buff,32);
+                    lfnList.push_back(lfn);
+                    fread(buff, 32, 1, fp);
+                    if(buff[0x0b]!=0x0f) break;
+                }
+                INode child(buff, 32);
+                child.set_lfn(lfnList);
+                node->children.push_back(child);
+            }
+            else
+            {
+                INode child(buff,32);
+                node->children.push_back(child);
+            }
         }
-        
-        cout << "children_size: children_size:" << node->children.size() << endl;
-        
-        // else if(node->get_ATTR==ATTR::ARCHIVE)
-        // {
-        //     return 0;
-        // }
-        // else if(node->get_ATTR==ATTR::LFN)
-        // {   
-        //     fseek(fp, br->data_area_offset + br->cluster_size);
-        //     fread(buff, 32, 1, fp);
-            
-        // }
         
         return true;
     }
@@ -339,35 +423,266 @@ class FileSystem
 
     int expand_all(INode* parent)
     {   
-        cout << "expand_all: " << parent->title.c_str() << endl;
         bool dir = expand(parent);
-        
-        cout << "expand_all: children_size:" << parent->children.size() << endl;
-        // cout <<dir<<endl;
+        // cout << "expand_all> title: " << parent->title.c_str() << endl;
+        // cout << "expand_all> children_size: " << parent->children.size() << endl;
+        // cout << "expand_all> dir true or false: " << dir <<endl;
+
         if(!dir) return 0;
 
         for (int i=0;i<parent->children.size();i++)
             expand_all(&parent->children[i]);
     }
 
-    int getNode()
-    {
+    // printf all the files
+    bool show_all(INode* parent, vector<INode*> visited)
+    {   
+        int children_cnt = parent->children.size();
 
+        bool exist = false, exist_child = true;
+
+        for(int j=0;j<visited.size();j++)
+        {   
+            if(visited[j] == parent) exist = true;
+        }
+        if(exist) return true;
+        
+        int i=0;
+        for(i=0;i<children_cnt;i++)
+        {
+            for(int j=0;j<visited.size();j++)
+            {   
+                if(visited[j] != &parent->children[i]) {
+                    exist_child = false;
+                    break;
+                }
+            }
+            if(!exist_child) break;
+        }
+
+        if(exist_child)
+        {
+            visited.push_back(parent);
+            return true;
+        }
+           
+        
+        if(parent->get_ATTR()!=ATTR::ARCHIVE)
+        {
+            printf("/%s",parent->title.c_str());
+            if(children_cnt!=0)
+                show_all(&parent->children[i],visited);
+            // visited.push_back(parent);
+        }
+        else 
+        {       
+            printf("/%s.%s", parent->title.c_str(),parent->extension.c_str());
+            visited.push_back(parent);
+        }
+
+        if(children_cnt==0)
+        {
+            printf("\n");
+            return show_all(rootNode, visited);
+        }
+            
+
+        // return false;
+
+        // in case it is a leaf node
+        // if(children_cnt == 0) 
+        // {
+
+        //     printf("\n");
+            
+        //     // visited check
+        //     visited.push_back(parent);
+
+        //     // go back to root node
+        //     show_all(rootNode, visited);
+        //     return ;
+        // }
+
+        // for(int i=0;i<children_cnt;i++)
+        // {   
+        //     bool exist = false;
+
+        //     for(int j=0;j<visited.size();j++)
+        //     {   
+        //         if(visited[j]==&parent->children[i]) exist = true;
+        //     }
+
+        //     if(exist)
+        //     {
+                
+        //     }
+        //     else
+        //     {
+        //         // if(parent->children[i].get_ATTR()!=ATTR::ARCHIVE)
+        //         //     printf("/%s",parent->children[i].title.c_str());
+        //         // else 
+        //         //     printf("/%s.%s", parent->children[i].title.c_str(),parent->children[i].extension.c_str());
+
+        //         show_all(&parent->children[i],visited);
+        //         // break;
+        //         return ;
+        //     }
+        // }
     }
-    
+
+    bool exportTo(string path)
+    {
+        int cur = 0;
+        vector<string> pathList;
+        
+        string filename;
+        while(cur < path.length())
+        {
+            int next = path.find('/',++cur);
+            filename = path.substr(cur, next-cur);
+            // cout << "cur "<<cur<<"next "<<next << endl;
+            // cout << title << endl;
+            pathList.push_back(filename);
+            cur = next;
+            if(cur==string::npos) break;
+        }
+
+        // cout << pathList.size() << endl;
+        int pos = filename.rfind('.');
+        string title = filename.substr(0, pos);
+        pathList[pathList.size()-1] = title;
+
+        INode *leafNode = get_node(rootNode, pathList);
+        if(leafNode==NULL) return false;
+        
+        
+        FILE *new_fp = fopen(filename.c_str(), "wb");
+        uint8_t buff[br->cluster_size];
+        uint32_t cluster_num = leafNode->first_cluster;
+        uint32_t file_size = leafNode->file_size;
+        cout << "file size" << hex << leafNode->file_size <<endl;
+        while(true)
+        {
+            // cout << "cluster:" << hex << cluster_num << endl;
+            cout << "location" << hex<<br->data_area_offset + br->cluster_size*(cluster_num - br->root_directory_cluster)<<endl;
+            fseek(fp, br->data_area_offset + br->cluster_size*(cluster_num - br->root_directory_cluster), SEEK_SET);
+            
+            if(file_size >= br->cluster_size)
+            {
+                fread(buff, br->cluster_size, 1, fp);
+                fwrite(buff, br->cluster_size, 1, new_fp);
+            }
+            else
+            {
+                fread(buff, file_size, 1, fp);
+                fwrite(buff, file_size, 1, new_fp);
+            }
+                
+            file_size -= br->cluster_size;
+            cluster_num = fat->get_next_entry(cluster_num);
+            if(!cluster_num) break;
+        }
+
+        fclose(new_fp);
+        return true;
+    }
+
+    INode* get_node(INode* node, vector<string> pathList){
+        // cout << "pathList" <<endl;
+        // for(int i=0;i<pathList.size();i++)
+        //     cout << pathList[i]<<endl;
+
+        // cout << pathList.size();
+        // if(node->title.compare(pathList[0])==0)
+        // {
+        //     pathList.erase(pathList.begin());
+        //     if(pathList.size()==0) return node;
+        //     else return get_node(&node->children[i], pathList);
+        // }
+        // return NULL;
+        
+        for(int i=0;i<node->children.size();i++)
+        {   
+            if(node->children[i].title.compare(pathList[0])==0)
+            {
+                pathList.erase(pathList.begin());
+                if(pathList.size()==0) return &node->children[i];
+                else return get_node(&node->children[i], pathList);
+            }
+        }
+
+        return NULL;
+    }
 };
 
 
 
 int main(int argc, char** argv)
 {
-    char* path;
-    if(argc == 1) sprintf(path, "./FAT32_simple.mdf");
+    string path;
+    if(argc == 1) path = "./FAT32_simple.mdf";
     else path = argv[1];
     
-    FILE *fp = fopen(path,"r");
+    // open an image file
+    FILE *fp = fopen(path.c_str(),"rb");
+
+    // build a file system
     FileSystem fs(fp);
-    fs.BuildFileSystem();
+    if(fs.BuildFileSystem()) cout << "Successfully built a file system" << endl;
+    else cout << "Error occured while building a file system" << endl;
+    
+    // expand all the files
     fs.expand_all();
+
+    // for(int i=0;i<fs.rootNode->children[1].children.size();i++)
+    //     cout << fs.rootNode->children[1].children[i].title << endl;
+    bool ing = true;
+    while(ing)
+    {
+        int key=0;
+        cout << "Press the number you want to do \n (1: show all the files/ 2: export a file/ 3: quit)" << endl;
+
+        cin >> key;
+        
+        switch(key)
+        {
+            case 1:
+            {
+                // show all the files and directory
+                cout << "Show all the files" << endl;
+                vector<INode*> v;
+                fs.show_all(fs.rootNode,v);
+                cout << endl;
+                break;
+            }
+                
+            case 2:
+            {
+                // export a file
+                cout << "Which file do you want to export?" << endl;
+                string file_path;
+                cin >> file_path;
+                if(fs.exportTo(file_path)) cout << "Successfully export the file" << file_path << endl;
+                else cout << "Error occured while exporting the file" << endl;
+                break;
+            }
+                
+            case 3:
+            {
+                ing = false;
+                break;
+            }
+                
+            default:
+            {
+                cout << key << "is not available key\n Please, press again" << endl; 
+                break;
+            }
+                
+        }
+    }
+    
+    // close an image file
     fclose(fp);
+    return 0;
 }

@@ -11,9 +11,13 @@
   - FAT
   - INode
   - Enum (ENTRY_KIND, ATTR)
+  - LFN Entry (Long File Name)
+  - Export LEAF.JPG
 
-- Library
+# To implement
+- Show all
+- Export PORT.JPG
+- CMAKE
+
+- Library used
   - byte_buffer2
-
-# To Implement
-- LFN (Long File Name)
