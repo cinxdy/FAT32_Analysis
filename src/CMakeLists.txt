@@ -13,6 +13,6 @@ target_include_directories (${TARGET_NAME}
   PUBLIC ../include
 )
 
-install (TARGETS ${TARGET_NAME}
-  ARCHIVE DESTINATION lib/
-)
+# install (TARGETS ${TARGET_NAME}
+#   ARCHIVE DESTINATION lib/
+# )

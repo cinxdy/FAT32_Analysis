@@ -34,6 +34,8 @@ or
 ./app.out <Input File>
 ```
 
+![IMG](run.png)
+
 # License
 yielding@hancom.com  
 cinxdys2@gmail.com (Jiyoung Shin)  

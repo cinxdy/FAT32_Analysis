@@ -6,6 +6,6 @@ set(SOURCES main.cpp)
 set (CMAKE_VERBOSE_MAKEFILE true)
 
 include_directories (include)
+add_subdirectory(src)
 link_libraries(core)
-add_library(src)
 add_executable(app.out ${SOURCES})
