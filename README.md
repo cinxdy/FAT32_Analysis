@@ -1,7 +1,7 @@
 # FAT32 File Explorer
 
 # Requirement
-- Build Fily System FAT32 from a mdf file
+- Build File System FAT32 from a mdf file
 - File Explorer(expand all files)
 - Save and Export specific file (LEAF.JPG)
 
