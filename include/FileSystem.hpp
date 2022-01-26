@@ -1,3 +1,6 @@
+
+#pragma once
+
 #include <vector>
 #include <algorithm>
 #include <string>
@@ -8,7 +11,7 @@
 #include "FAT.hpp"
 #include "INode.hpp"
 #include "LFNNode.hpp"
-#include "fat32_enum.hpp"
+// #include "fat32_enum.hpp"
 
 class FileSystem
 {

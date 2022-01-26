@@ -1,6 +1,9 @@
+#pragma once
+
 #include <sstream>
 #include "byte_buffer2.hpp"
 #include "fat32_enum.hpp"
+using namespace std;
 
 class FAT
 {

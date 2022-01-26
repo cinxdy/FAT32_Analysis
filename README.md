@@ -15,9 +15,25 @@
 - Show all the files
 - Export LEAF.JPG
 - Export PORT.JPG
+- Support building via cmake
 
-# To implement
-- CMAKE
-
-# Library used
+# External Library used
   - byte_buffer2
+  - endian_swap
+
+# Build
+```
+cmake .
+make
+```
+
+# Run
+```
+./app.out  # default input file = FAT32_simple.mdf
+or
+./app.out <Input File>
+```
+
+# License
+yielding@hancom.com  
+cinxdys2@gmail.com (Jiyoung Shin)  

@@ -1,3 +1,7 @@
+#include <sstream>
+#include "byte_buffer2.hpp"
+#include "BootRecord.hpp"
+
 BootRecord::BootRecord(uint8_t* buffer, int size)
 {
     ByteBuffer2 bb(buffer,size);
@@ -22,7 +26,7 @@ BootRecord::BootRecord(uint8_t* buffer, int size)
     // Data Area Offset = Reserved Area Size + FAT Area Size
     data_area_offset =  FAT1_area_offset + FAT1_area_size*2;
     // data_area_cluster_offset = data_area_offset;
-}
+};
 
 string BootRecord::to_s()
 {   
@@ -47,4 +51,4 @@ string BootRecord::to_s()
     res = sstream.str();
 
     return res;
-}
+};

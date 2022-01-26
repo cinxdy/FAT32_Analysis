@@ -1,3 +1,6 @@
+#include "INode.hpp"
+// using namespace std;
+
 INode::INode(uint8_t* buffer, int size)
 {
     ByteBuffer2 bb(buffer,size);

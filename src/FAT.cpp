@@ -1,3 +1,5 @@
+#include "FAT.hpp"
+
 FAT::FAT(uint8_t* buffer, int size)
 {  
     ByteBuffer2 bb(buffer,size);

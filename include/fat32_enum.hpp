@@ -1,4 +1,6 @@
-enum ENTRY_KIND 
+#pragma once
+
+enum class ENTRY_KIND 
 {
     UNKNOWN=0,
     NOT_ALLOCATED,
@@ -9,7 +11,7 @@ enum ENTRY_KIND
 };
 
 
-enum  ATTR
+enum class ATTR
 {
     UNKNOWN=0,
     READ_ONLY,

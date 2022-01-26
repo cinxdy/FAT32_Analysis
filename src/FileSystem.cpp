@@ -1,3 +1,7 @@
+#include "FileSystem.hpp"
+#include <iostream>
+using namespace std;
+
 FileSystem::FileSystem(FILE *fp)
 {
     this->fp = fp;
@@ -188,7 +192,7 @@ bool FileSystem::export_to(string path)
     while(true)
     {
         // cout << "cluster:" << hex << cluster_num << endl;
-        cout << "location" << hex<<br->data_area_offset + br->cluster_size*(cluster_num - br->root_directory_cluster)<<endl;
+        // cout << "location" << hex<<br->data_area_offset + br->cluster_size*(cluster_num - br->root_directory_cluster)<<endl;
         fseek(fp, br->data_area_offset + br->cluster_size*(cluster_num - br->root_directory_cluster), SEEK_SET);
         
         if(file_size >= br->cluster_size)

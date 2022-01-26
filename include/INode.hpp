@@ -1,7 +1,11 @@
-#include <string>
+#pragma once
 
+#include <string>
+#include <vector>
 #include "fat32_enum.hpp"
 #include "byte_buffer2.hpp"
+#include "LFNNode.hpp"
+using namespace std;
 
 class INode
 {

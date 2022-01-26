@@ -1,5 +1,7 @@
-#include <sstream>
-#include "byte_buffer2.hpp"
+#pragma once
+
+#include <string>
+using namespace std;
 
 class BootRecord 
 {
@@ -22,6 +24,6 @@ class BootRecord
 
     BootRecord(uint8_t* buffer, int size);
     string to_s();
-}
+};
 
     
