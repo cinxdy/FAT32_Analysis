@@ -7,19 +7,27 @@
 #include "LFNNode.hpp"
 using namespace std;
 
-class INode
+class Inode
 {
     public:
-    string title;
+    string file_name;
+    FILE_NAME_TYPE file_name_type;
     string extension;
-    uint8_t attr;
+    ATTR attr;
     uint32_t file_size;
     uint32_t first_cluster;
     uint32_t offset;
-    vector<INode> children;
 
-    INode(uint8_t* buffer, int size);
-    ATTR get_ATTR();
+    int32_t* content;
+    vector<Inode> children;
+
+    void trim_space(string* text);
+
+    FILE_NAME_TYPE get_file_name_type(string* file_name);
+    Inode(uint8_t* buffer);
+    ~Inode();
+
+    ATTR get_attr(uint8_t attr);
+    bool has_child();
     void set_lfn(vector<LFNNode> lfnList);
-    string to_s();
 };

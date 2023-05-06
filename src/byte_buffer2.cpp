@@ -36,6 +36,10 @@ ByteBuffer2::ByteBuffer2(uint8_t* data, int count, bool owner)
   : ByteBuffer2(data, 0, count, owner)
 {}
 
+ByteBuffer2::ByteBuffer2(uint8_t* data, bool owner)
+  : ByteBuffer2(data, 0, sizeof(data) / sizeof(uint8_t), owner)
+{}
+
 ByteBuffer2::ByteBuffer2()
   : ByteBuffer2(nullptr, 0, 0)
 {}
@@ -120,7 +124,7 @@ auto ByteBuffer2::destroy() -> void
 
 auto ByteBuffer2::set_owner() -> ByteBuffer2&
 {
-  if (!m_owner and m_count > 0)
+  if (!m_owner && m_count > 0)
   {
     auto new_data = new uint8_t[m_count];
     memcpy(new_data, m_data + m_begin, m_count);
@@ -139,7 +143,7 @@ auto ByteBuffer2::set_owner() -> ByteBuffer2&
 // very simple scheme
 auto ByteBuffer2::resize(int upto) -> int
 {
-  if (!m_owner or upto <= m_limit)
+  if (!m_owner || upto <= m_limit)
     return -1;
 
   // assert(m_begin == 0)

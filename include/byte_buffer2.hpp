@@ -16,7 +16,8 @@ class ByteBuffer2
 public:
   ByteBuffer2();
   ByteBuffer2(uint8_t* data, int offset, int count, bool owner=false);
-  ByteBuffer2(uint8_t* data, int count, bool owner=false);
+  ByteBuffer2(uint8_t* data, int count, bool owner = false);
+  ByteBuffer2(uint8_t* data, bool owner = false);
   explicit ByteBuffer2(std::string && src);
   ByteBuffer2(std::initializer_list<uint8_t> l);
   ByteBuffer2(ByteBuffer2 &&) noexcept;

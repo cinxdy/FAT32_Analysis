@@ -4,8 +4,8 @@ add_library(${TARGET_NAME}
   byte_buffer2.cpp
   BootRecord.cpp
   FAT.cpp
-  FileSystem.cpp
-  INode.cpp
+  FsFat32.cpp
+  Inode.cpp
   LFNNode.cpp
 )
 

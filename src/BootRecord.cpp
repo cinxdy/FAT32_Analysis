@@ -1,54 +1,65 @@
-#include <sstream>
-#include "byte_buffer2.hpp"
 #include "BootRecord.hpp"
 
-BootRecord::BootRecord(uint8_t* buffer, int size)
+BootRecord::BootRecord(uint8_t* buffer)
 {
-    ByteBuffer2 bb(buffer,size);
-    bb.skip(11);
-    bytes_per_sector        =bb.get_uint16_le();
-    sector_per_cluster      =bb.get_uint8();
-    reserved_sector_count   =bb.get_uint16_le();
-    num_of_FAT              =bb.get_uint8();
-    bb.skip(19);
-    FAT_size_32             =bb.get_uint32_le();
-    bb.skip(4);
-    root_directory_cluster  =bb.get_uint32_le();
+	ByteBuffer2 bb(buffer);
 
-    cluster_size = bytes_per_sector*sector_per_cluster;
+	// 0x00
+	jump_boot_code = bb.get_uint24_le();
+	oem_name = bb.get_ascii(8);
+	bytes_per_sector = bb.get_uint16_le();
+	sector_per_cluster = bb.get_uint8();
+	reserved_sector_count = bb.get_uint16_le();
 
-    reserved_area_size = bytes_per_sector* reserved_sector_count;
+	// 0x10
+	num_of_fats = bb.get_uint8();
+	root_entry_count = bb.get_uint16_le();
+	total_sector_16 = bb.get_uint16_le();
+	media = bb.get_uint8();
+	fat_size_16 = bb.get_uint16_le();
+	sector_per_track = bb.get_uint16_le();
+	num_of_heads = bb.get_uint16_le();
+	hidden_sector = bb.get_uint32_le();
 
-    //FAT Area Size = Num of FAT * (FAT Size 32 * Bytes Per Sector)
-    FAT1_area_offset = reserved_area_size;
-    FAT1_area_size = FAT_size_32*bytes_per_sector;
+	// 0x20
+	total_sector_32 = bb.get_uint32_le();
+	fat_size_32 = bb.get_uint32_le();
+	ext_flags = bb.get_uint16_le();
+	file_sys_version = bb.get_uint16_le();
+	root_directory_cluster = bb.get_uint32_le();
 
-    // Data Area Offset = Reserved Area Size + FAT Area Size
-    data_area_offset =  FAT1_area_offset + FAT1_area_size*2;
-    // data_area_cluster_offset = data_area_offset;
+	// 0x30
+	file_sys_info = bb.get_uint32_le();
+	backup_boot_sec = bb.get_uint16_le();
+	bb.skip(12); // reserved
+
+	// 0x40
+	drv_num = bb.get_uint8();
+	bb.skip(1);
+	boot_sig = bb.get_uint8();
+	volumn_id = bb.get_uint32_le();
+	volumn_label = bb.get_ascii(11);
+
+	// 0x50
+	file_system_type = bb.get_ascii(8);
+
+	error_msg = bb.get_ascii(419);
+	signature = bb.get_uint16_le();
+
+	// Calculate
+	cluster_size = bytes_per_sector * sector_per_cluster;
+	reserved_area_size = bytes_per_sector * reserved_sector_count;
+	fat_area_size = fat_size_32 * bytes_per_sector;
+
+	fsinfo_area_offset = bytes_per_sector * file_sys_info;
+	fat_area_offset[0] = reserved_area_size;
+	fat_area_offset[1] = fat_area_offset[0] + fat_area_size;
+	data_area_offset = fat_area_offset[1] + fat_area_size;
 };
 
-string BootRecord::to_s()
-{   
-    stringstream sstream;
-    string res="";
-    // int i = 10;
-    // char buf[1024] = { 0 };
-    // sprintf(buf, "%x", i);
-    // string res(buf);
-
-    // sstream << hex << bytes_per_sector << endl;
-    // sstream << hex << sector_per_cluster<< endl;
-    // sstream << hex << reserved_sector_count<< endl;
-    // sstream << hex << num_of_FAT<<endl;
-    // sstream << hex << FAT_size_32<< endl;
-    // sstream << hex << root_directory_cluster << endl;
-    
-    sstream << "Cluster size: " << hex << cluster_size << endl;
-    sstream << "FAT1 offset: " << hex << FAT1_area_offset << endl;
-    sstream << "Data offset: " << hex << data_area_offset << endl;
-    
-    res = sstream.str();
-
-    return res;
-};
+bool BootRecord::is_valid()
+{
+	if (root_entry_count == 0 && total_sector_16 == 0 && signature == 0xAA55)
+		return true;
+	return false;
+}

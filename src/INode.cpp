@@ -1,72 +1,85 @@
-#include "INode.hpp"
-// using namespace std;
+#include "Inode.hpp"
 
-INode::INode(uint8_t* buffer, int size)
+Inode::Inode(uint8_t* buffer)
 {
-    ByteBuffer2 bb(buffer,size);
+	ByteBuffer2 bb(buffer);
 
-    title                   = bb.get_ascii(8);
-    for(int i=title.length()-1;i>=0;i--)
-    {
-        if(title[i]==0x20) title.erase(i);
-        else break;
-    }
+	// file_name
+	file_name = bb.get_ascii(8);
+	trim_space(&file_name);
+	file_name_type = get_file_name_type(&file_name);
 
-    extension               = bb.get_ascii(3);
-    
-    for(int i=extension.length()-1;i>=0;i--)
-    {
-        if(extension[i]==0x20) extension.erase(i);
-        else break;
-    }
-    attr                    = bb.get_uint8();
+	// extension
+	extension = bb.get_ascii(3);
+	trim_space(&extension);
 
-    bb.skip(8);
-    auto first_cluster_high = bb.get_int16_le();
-    
-    bb.skip(4);
-    auto first_cluster_low  = bb.get_int16_le();
+	// attr_kind
+	auto attr_uint = bb.get_uint8();
+	attr = get_attr(attr_uint);
 
-    file_size = bb.get_uint32_le();
+	bb.skip(8);
+	auto first_cluster_high = bb.get_int16_le();
 
-    first_cluster = first_cluster_high << 0x16 | first_cluster_low;
- 
-};
+	bb.skip(4);
+	auto first_cluster_low = bb.get_int16_le();
 
-ATTR INode::get_ATTR()
+	file_size = bb.get_uint32_le();
+
+	first_cluster = first_cluster_high << 0x16 | first_cluster_low;
+}
+
+Inode::~Inode()
 {
-    switch(attr)
-    {
-        case 0x01: return ATTR::READ_ONLY;
-        case 0x02: return ATTR::HIDDEN;
-        case 0x04: return ATTR::SYSTEM;
-        case 0x08: return ATTR::VOLUMN;
-        case 0x0f: return ATTR::LFN;
-        case 0x10: return ATTR::DIR;
-        case 0x20: return ATTR::ARCHIVE;
-        case 0x40: return ATTR::DEVICE;
-        case 0x80: return ATTR::RESERVED;
-        default: return ATTR::UNKNOWN;
 
-    }
-};
+}
 
-void INode::set_lfn(vector<LFNNode> lfnList){
-    title="";
-    for(int i=lfnList.size()-1;i>=0;i--)
-    {
-        title.append(lfnList[i].title) ;
-    }
-
-    // cout << "INode> title: " << title << endl;
-};
-
-string INode::to_s()
+ATTR Inode::get_attr(uint8_t attr)
 {
-    string res="";
-    res += "title:"+ title + "." + extension;
-    return res;
-    // char buf[1024] = { 0 };
-    // sprintf(buf, "Title: %s.%s", title.c_str(), extension.c_str());
-    // return buf;
+	switch (attr)
+	{
+	case 0x01: return ATTR::READ_ONLY;
+	case 0x02: return ATTR::HIDDEN;
+	case 0x04: return ATTR::SYSTEM;
+	case 0x08: return ATTR::VOLUMN;
+	case 0x0f: return ATTR::LFN;
+	case 0x10: return ATTR::DIR;
+	case 0x20: return ATTR::ARCHIVE;
+	case 0x40: return ATTR::DEVICE;
+	case 0x80: return ATTR::RESERVED;
+	default: return ATTR::UNKNOWN;
+	}
 };
+
+bool Inode::has_child()
+{
+	if (attr == ATTR::VOLUMN) return true;
+	if (attr == ATTR::DIR) return true;
+	if (attr == ATTR::ARCHIVE) return true;
+	return false;
+}
+
+void Inode::set_lfn(vector<LFNNode> lfnList) {
+	file_name = "";
+	for (int i = lfnList.size() - 1; i >= 0; i--)
+	{
+		file_name.append(lfnList[i].title);
+	}
+	// cout << "INode> title: " << title << endl;
+};
+
+void Inode::trim_space(string* text) {
+	// Trim space(0x20)
+	auto npos = text->find_last_not_of(0x20);
+	if (npos != string::npos)
+		text->erase(npos + 1);
+}
+
+FILE_NAME_TYPE Inode::get_file_name_type(string* file_name)
+{
+	char special_char = file_name->front();
+	if (special_char == 0x00) return FILE_NAME_TYPE::USED;
+	if (special_char == 0xE5) return FILE_NAME_TYPE::DELETED;
+	if (special_char == 0x05) file_name->replace(0, 1, 1, char(0xE5));
+
+	return FILE_NAME_TYPE::NONE;
+}
