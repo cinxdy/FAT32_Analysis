@@ -9,6 +9,8 @@ using namespace std;
 class BootRecord
 {
 public:
+	BootRecord(uint8_t* buffer);
+	bool is_valid();
 
 	uint32_t jump_boot_code;
 	string oem_name;
@@ -53,7 +55,5 @@ public:
 
 	uint32_t data_area_offset;
 
-	BootRecord(uint8_t* buffer);
-	bool is_valid();
 };
 

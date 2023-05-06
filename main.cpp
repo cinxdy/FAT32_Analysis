@@ -7,7 +7,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
 	string path;
-	if (argc == 1) path = "C:/Users/user/Documents/GitHub/FAT32_Analysis/FAT32_simple.mdf";
+	if (argc == 1) path = "C:/Users/user/Documents/GitHub/FAT32_Analysis/FAT32_image.mdf";
 	else path = argv[1];
 
 	// open an image file
@@ -15,8 +15,13 @@ int main(int argc, char** argv)
 
 	// build a file system
 	FsFat32 fs(fp);
-	if (fs.build_file_system()) cout << "Successfully built a file system" << endl;
-	else cout << "Error occured while building a file system" << endl;
+	if (fs.build_file_system()) {
+		cout << "Successfully built a file system" << endl;
+	}
+	else {
+		cout << "Error occured while building a file system" << endl;
+		return 0;
+	}
 	fclose(fp);
 
 	//

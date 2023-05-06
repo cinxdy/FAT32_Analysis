@@ -40,17 +40,17 @@ bool FsFat32::build_file_system()
 	try
 	{
 		// bootRecord
-		auto buffer = read_file_to_buffer(fp, 0, sector_size);
+		uint8_t* buffer = read_file_to_buffer(fp, 0, sector_size);
 		br = new BootRecord(buffer);
 		delete buffer;
 
 		// fsInfo
-		auto buffer = read_file_to_buffer(fp, br->fsinfo_offset, sector_size);
+		buffer = read_file_to_buffer(fp, br->fsinfo_area_offset, sector_size);
 		fs_info = new FsInfo(buffer);
 		delete buffer;
 
 		// fat1 & 2
-		this->fat = new Fat[2];
+		fat = new Fat*[2];
 		for (int i = 0; i < 2; i++) {
 			buffer = read_file_to_buffer(fp, br->fat_area_offset[i], br->fat_area_size);
 			fat[i] = new Fat(buffer);
@@ -86,32 +86,35 @@ bool FsFat32::expand_all() {
 
 bool FsFat32::expand_all(Inode* parent)
 {
-	if (!expand(parent)) return false;
+	if (!parent->has_child()) 
+		return true;
+
+	if (!expand(parent)) 
+		return false;
 
 	for each (Inode * child in parent->children)
-		if (!expand_all(child)) return false;
+		if (!expand_all(child)) 
+			return false;
 
 	return true;
 }
 
 bool FsFat32::expand(Inode* node)
 {
-	if (!parent->hasChild()) return true;
-
-	auto offset = data_area_offset;
-	switch (node->get_ATTR())
+	auto offset = br->data_area_offset;
+	switch (node->attr)
 	{
-		case ATTR::VOLUMN:
-			offset += inode_size;
-			break;
-		case ATTR::DIR:
-			offset += br->cluster_size * (node->first_cluster - br->root_directory_cluster);
-			break;
+	case ATTR::VOLUMN:
+		offset += inode_size;
+		break;
+	case ATTR::DIR:
+		offset += br->cluster_size * (node->first_cluster - br->root_directory_cluster);
+		break;
 	}
 	fseek(fp, offset, SEEK_SET);
 
-	uint8_t buff[inode_size];
-	while (!fread(buff, inode_size, 1, fp))
+	uint8_t* buff = new uint8_t[inode_size];
+	while (fread(buff, inode_size, 1, fp))
 	{
 		if (buff[0] == 0x00) break; // entry is the end
 		if (buff[0] == 0x2E) continue; // entry is not active
@@ -121,18 +124,18 @@ bool FsFat32::expand(Inode* node)
 			int i = 0;
 			while (true)
 			{
-				LFNNode lfn(buff, inode_size);
+				LFNNode lfn(buff);
 				lfnList.push_back(lfn);
 				fread(buff, sizeof(char), inode_size, fp);
 				if (buff[0x0b] != 0x0f) break;
 			}
-			Inode* child = new Inode(buff, inode_size);
+			Inode* child = new Inode(buff);
 			child->set_lfn(lfnList);
 			node->children.push_back(child);
 		}
 		else
 		{
-			Inode* child = new Inode(buff, inode_size);
+			Inode* child = new Inode(buff);
 			node->children.push_back(child);
 		}
 	}
@@ -147,7 +150,7 @@ void FsFat32::show_node(Inode* node)
 		printf("/%s.%s", node->file_name.c_str(), node->extension.c_str());
 };
 
-void FsFat32::show_all(Inode* parent, vector<Inode> visited)
+void FsFat32::show_all(Inode* parent, vector<Inode*> visited)
 {
 	int children_cnt = parent->children.size();
 
@@ -166,7 +169,7 @@ void FsFat32::show_all(Inode* parent, vector<Inode> visited)
 	// check visited children
 	for (i = 0; i < children_cnt; i++)
 	{
-		visited_children = (find(visited.begin(), visited.end(), &parent->children[i]) != visited.end());
+		visited_children = (find(visited.begin(), visited.end(), parent->children[i]) != visited.end());
 		if (!visited_children) break;
 	}
 
@@ -180,7 +183,7 @@ void FsFat32::show_all(Inode* parent, vector<Inode> visited)
 	// not yet visited i-th child
 	else
 	{
-		show_all(&parent.children[i], visited);
+		show_all(parent->children[i], visited);
 	}
 
 	return;
@@ -213,19 +216,18 @@ bool FsFat32::export_to(string path)
 
 
 	FILE* new_fp = fopen(filename.c_str(), "wb");
-	const int size = br.cluster_size;
-	uint8_t* buff = new uint8_t[size];
-	uint32_t cluster_num = leafNode.first_cluster;
-	uint32_t file_size = leafNode.file_size;
+	uint8_t* buff = new uint8_t[br->cluster_size];
+	uint32_t cluster_num = leafNode->first_cluster;
+	uint32_t file_size = leafNode->file_size;
 
 	while (true)
 	{
-		fseek(fp, br.data_area_offset + br.cluster_size * (cluster_num - br.root_directory_cluster), SEEK_SET);
+		fseek(fp, br->data_area_offset + br->cluster_size * (cluster_num - br->root_directory_cluster), SEEK_SET);
 
-		if (file_size >= br.cluster_size)
+		if (file_size >= br->cluster_size)
 		{
-			fread(buff, br.cluster_size, 1, fp);
-			fwrite(buff, br.cluster_size, 1, new_fp);
+			fread(buff, br->cluster_size, 1, fp);
+			fwrite(buff, br->cluster_size, 1, new_fp);
 		}
 		else
 		{
@@ -233,8 +235,8 @@ bool FsFat32::export_to(string path)
 			fwrite(buff, file_size, 1, new_fp);
 		}
 
-		file_size -= br.cluster_size;
-		cluster_num = fat.get_next_entry(cluster_num);
+		file_size -= br->cluster_size;
+		cluster_num = fat[0]->get_next_entry(cluster_num);
 		if (!cluster_num) break;
 	}
 
@@ -242,20 +244,19 @@ bool FsFat32::export_to(string path)
 	return true;
 };
 
-Inode FsFat32::get_node(Inode* node, vector<string> pathList)
+Inode* FsFat32::get_node(Inode* node, vector<string> pathList)
 {
-	if (node.title.compare(pathList[0]) == 0)
+	if (!node->file_name.compare(pathList[0])) 
+		return NULL;
+
+	pathList.erase(pathList.begin());
+	if (pathList.size() == 0) return node;
+
+	for (int i = 0; i < node->children.size(); i++)
 	{
-		pathList.erase(pathList.begin());
-		if (pathList.size() == 0) return node;
-
-		for (int i = 0; i < node.children.size(); i++)
-		{
-			Inode child_node = get_node(node.children[i], pathList);
-			if (child_node != NULL) return child_node;
-
-		}
+		Inode* child_node = get_node(node->children[i], pathList);
+		if (child_node != NULL) 
+			return child_node;
 	}
-	return NULL;
 }
 

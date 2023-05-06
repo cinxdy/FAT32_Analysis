@@ -1,8 +1,9 @@
 #include "Fat.hpp"
 
-Fat::Fat(uint8_t* buffer, int size)
+Fat::Fat(uint8_t* buffer)
 {  
-    ByteBuffer2 bb(buffer,size);
+    ByteBuffer2 bb(buffer);
+    auto size = _msize(buffer);
     auto total_entry_cnt = size/4;
     
     this->size = total_entry_cnt;

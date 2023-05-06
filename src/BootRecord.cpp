@@ -43,7 +43,7 @@ BootRecord::BootRecord(uint8_t* buffer)
 	// 0x50
 	file_system_type = bb.get_ascii(8);
 
-	error_msg = bb.get_ascii(419);
+	error_msg = bb.get_ascii(418);
 	signature = bb.get_uint16_le();
 
 	// Calculate

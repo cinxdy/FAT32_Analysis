@@ -17,4 +17,4 @@ public:
 	uint16_t next_free_cluster;
 
 	bool is_valid();
-}
+};

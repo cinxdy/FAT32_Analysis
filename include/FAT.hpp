@@ -13,7 +13,7 @@ class Fat
 
     public:
 
-    Fat(uint8_t* buffer, int size);
+    Fat(uint8_t* buffer);
     uint32_t get_fat_entry(int entry_num);
     int get_size();
     uint32_t get_next_entry(int entry_num);

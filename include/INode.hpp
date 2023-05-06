@@ -19,7 +19,7 @@ class Inode
     uint32_t offset;
 
     int32_t* content;
-    vector<Inode> children;
+    vector<Inode*> children;
 
     void trim_space(string* text);
 

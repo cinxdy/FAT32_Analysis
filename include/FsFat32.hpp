@@ -11,16 +11,18 @@
 #include "FAT.hpp"
 #include "INode.hpp"
 #include "LFNNode.hpp"
+#include "FsInfo.hpp"
 #include "fat32_enum.hpp"
 
 class FsFat32
 {
-	const int sector_size = 0x200;
-	const int inode_size = 0x20;
+	static const unsigned int sector_size = 0x200;
+	static const unsigned int inode_size = 0x20;
 public:
 	FILE* fp;
 	BootRecord* br;
-	Fat* fat;
+	FsInfo* fs_info;
+	Fat** fat;
 	Inode* root_node;
 	Inode* node_hash;
 
@@ -33,8 +35,8 @@ public:
 
 private:
 	uint8_t* read_file_to_buffer(FILE* fp, int offset, int size);
-	void expand_all();
-	void expand_all(Inode* parent);
+	bool expand_all();
+	bool expand_all(Inode* parent);
 	bool expand(Inode* node);
 	void show_node(Inode* node);
 

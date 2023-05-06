@@ -37,7 +37,7 @@ ByteBuffer2::ByteBuffer2(uint8_t* data, int count, bool owner)
 {}
 
 ByteBuffer2::ByteBuffer2(uint8_t* data, bool owner)
-  : ByteBuffer2(data, 0, sizeof(data) / sizeof(uint8_t), owner)
+  : ByteBuffer2(data, 0, _msize(data), owner)
 {}
 
 ByteBuffer2::ByteBuffer2()

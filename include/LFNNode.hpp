@@ -8,5 +8,5 @@ class LFNNode
 {   
     public:
     string title;
-    LFNNode(uint8_t* buffer, int size);
+    LFNNode(uint8_t* buffer);
 };
