@@ -11,6 +11,7 @@ int main(int argc, char** argv)
 	else path = argv[1];
 
 	// open an image file
+	// please change from FILE to fstream
 	FILE* fp = fopen(path.c_str(), "rb");
 
 	// build a file system
