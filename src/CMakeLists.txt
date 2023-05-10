@@ -8,7 +8,8 @@ add_library(${TARGET_NAME}
   FsFat32.cpp
   Inode.cpp
   LFNNode.cpp
-)
+  DosDateTime.cpp 
+  Cluster.cpp)
 
 target_include_directories (${TARGET_NAME}
   PUBLIC ../include

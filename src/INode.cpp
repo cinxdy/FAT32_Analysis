@@ -1,4 +1,5 @@
 #include "Inode.hpp"
+#include <iostream>
 
 Inode::Inode(uint8_t* buffer)
 {
@@ -6,6 +7,9 @@ Inode::Inode(uint8_t* buffer)
 
 	// file_name
 	file_name = bb.get_ascii(8);
+	if (file_name[0] == 0x2E)
+		not_active = true;
+
 	trim_space(&file_name);
 	file_name_type = get_file_name_type(&file_name);
 
@@ -17,15 +21,24 @@ Inode::Inode(uint8_t* buffer)
 	auto attr_uint = bb.get_uint8();
 	attr = get_attr(attr_uint);
 
-	bb.skip(8);
+	bb.skip(2);
+	auto created_time = bb.get_uint16_le();
+	auto created_date = bb.get_uint16_le();
+	created_datetime = DosDateTime(created_date, created_time).to_s();
+
+	auto last_accessed_date = static_cast<time_t>(bb.get_uint16_le() << 0x10);
+	last_accessed_datetime = DosDateTime(last_accessed_date).to_s();
+
 	auto first_cluster_high = bb.get_int16_le();
 
-	bb.skip(4);
+	auto last_written_time = bb.get_uint16_le();
+	auto last_written_date = bb.get_uint16_le();
+	last_written_datetime = DosDateTime(last_written_date, last_written_time).to_s();
+
 	auto first_cluster_low = bb.get_int16_le();
-
 	file_size = bb.get_uint32_le();
-
-	first_cluster = first_cluster_high << 0x16 | first_cluster_low;
+	first_cluster = first_cluster_high << 0x10 | first_cluster_low;
+	cout << to_s() << endl;
 }
 
 Inode::~Inode()
@@ -70,8 +83,7 @@ void Inode::set_lfn(vector<LFNNode> lfnList) {
 void Inode::trim_space(string* text) {
 	// Trim space(0x20)
 	auto npos = text->find_last_not_of(0x20);
-	if (npos != string::npos)
-		text->erase(npos + 1);
+	text->erase(npos + 1);
 }
 
 FILE_NAME_TYPE Inode::get_file_name_type(string* file_name)
@@ -82,4 +94,18 @@ FILE_NAME_TYPE Inode::get_file_name_type(string* file_name)
 	if (special_char == 0x05) file_name->replace(0, 1, 1, char(0xE5));
 
 	return FILE_NAME_TYPE::NONE;
+}
+
+string Inode::to_s() {
+	stringstream ss;
+	ss << "-----Inode------" << endl;
+	ss << "File Name: " << file_name << endl;
+	ss << "File Extension: " << extension << endl;
+	ss << "Created DateTime: " << created_datetime << endl;
+	ss << "Last Accessed DateTime: " << last_accessed_datetime << endl;
+	ss << "Last Written DateTime: " << last_written_datetime << endl;
+	ss << "File Size: " << file_size << endl;
+	ss << "First Cluster Num: " << first_cluster << endl;
+
+	return ss.str();
 }

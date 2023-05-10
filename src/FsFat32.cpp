@@ -50,7 +50,7 @@ bool FsFat32::build_file_system()
 		delete buffer;
 
 		// fat1 & 2
-		fat = new Fat*[2];
+		fat = new Fat * [2];
 		for (int i = 0; i < 2; i++) {
 			buffer = read_file_to_buffer(fp, br->fat_area_offset[i], br->fat_area_size);
 			fat[i] = new Fat(buffer);
@@ -58,17 +58,49 @@ bool FsFat32::build_file_system()
 		}
 
 		// rootNode
-		buffer = read_file_to_buffer(fp, br->data_area_offset, inode_size);
-		root_node = new Inode(buffer);
-		delete buffer;
+		auto root_entries = new Inode * [10];
+		for (int i = 0; i< br->cluster_size/inode_size; i ++) {
+			buffer = read_file_to_buffer(fp, br->data_area_offset, inode_size);
+			
+			if (buffer[0] == 0x00) {
+				delete[] buffer;
+				break; // entry is the end
+			}
+
+			root_entries[i] = new Inode(buffer);
+			delete buffer;
+		}
 
 		return expand_all();
+
+		//// Cluster
+		//for (int i = 2; i < fat[0]->total_entry_cnt; i++)
+		//{
+		//	if (fat[0]->get_entry_kind(i) == ENTRY_KIND::UNKNOWN) continue;
+		//	if (fat[0]->get_entry_kind(i) == ENTRY_KIND::BAD_SECTOR) continue;
+		//	if (fat[0]->get_entry_kind(i) == ENTRY_KIND::NOT_ALLOCATED) continue;
+		//	if (fat[0]->get_entry_kind(i) == ENTRY_KIND::RESERVED) continue;
+
+		//	buffer = read_file_to_buffer(fp, get_cluster_offset(i), br->cluster_size);
+		//	
+		//	delete[] buffer;
+		//}
 	}
 	catch (exception e)
 	{
 		return false;
 	}
 };
+
+
+//bool FsFat32::build_data_area() {
+//	// rootNode
+//	buffer = read_file_to_buffer(fp, br->data_area_offset, inode_size);
+//	root_node = new Inode(buffer);
+//	delete buffer;
+//
+//	return expand_all();
+//}
 
 uint8_t* FsFat32::read_file_to_buffer(FILE* fp, int offset, int size) {
 	auto buffer = new uint8_t[size];
@@ -86,61 +118,81 @@ bool FsFat32::expand_all() {
 
 bool FsFat32::expand_all(Inode* parent)
 {
-	if (!parent->has_child()) 
-		return true;
-
-	if (!expand(parent)) 
+	// Failed to expand a folder 
+	if (!expand(parent))
 		return false;
 
 	for each (Inode * child in parent->children)
-		if (!expand_all(child)) 
+		if (!expand_all(child))
 			return false;
 
 	return true;
 }
 
-bool FsFat32::expand(Inode* node)
+bool FsFat32::expand(Inode* parent)
 {
-	auto offset = br->data_area_offset;
-	switch (node->attr)
-	{
-	case ATTR::VOLUMN:
-		offset += inode_size;
-		break;
-	case ATTR::DIR:
-		offset += br->cluster_size * (node->first_cluster - br->root_directory_cluster);
-		break;
-	}
-	fseek(fp, offset, SEEK_SET);
+	if (parent->attr != ATTR::DIR)
+		return true;
 
-	uint8_t* buff = new uint8_t[inode_size];
-	while (fread(buff, inode_size, 1, fp))
+	try
 	{
-		if (buff[0] == 0x00) break; // entry is the end
-		if (buff[0] == 0x2E) continue; // entry is not active
-		if (buff[0x0b] == 0x0f) // entry is LFN
-		{
-			vector<LFNNode> lfnList;
-			int i = 0;
-			while (true)
-			{
-				LFNNode lfn(buff);
-				lfnList.push_back(lfn);
-				fread(buff, sizeof(char), inode_size, fp);
-				if (buff[0x0b] != 0x0f) break;
+		auto offset = get_cluster_offset(parent->first_cluster);
+		uint8_t* buff;
+		int i = 0;
+
+		while (true) {
+			buff = read_file_to_buffer(fp, offset, inode_size);
+
+			if (buff[0] == 0x00) {
+				delete[] buff;
+				break; // entry is the end
 			}
+
+			if (buff[0] == 0x2E) {
+				delete[] buff;
+				continue;		// entry is not active
+			}
+
 			Inode* child = new Inode(buff);
-			child->set_lfn(lfnList);
-			node->children.push_back(child);
+			parent->children.push_back(child);
+			offset += inode_size;
+			delete[] buff;
+
+			if (i++ > 10000)
+				break;
 		}
-		else
-		{
-			Inode* child = new Inode(buff);
-			node->children.push_back(child);
-		}
+
+		return true;
 	}
-	return true;
+	catch (exception e)
+	{
+		return false;
+	}
 }
+
+unsigned int FsFat32::get_cluster_offset(int cluster_num)
+{
+	if (cluster_num < br->root_directory_cluster)
+		throw new invalid_argument("cluster_num");
+
+	return br->data_area_offset + br->cluster_size * (cluster_num - br->root_directory_cluster);
+}
+
+//if (buff[0x0b] == 0x0F) // entry is LFN
+//{
+//	vector<LFNNode> lfnList;
+//	int i = 0;
+//	while (true)
+//	{
+//		LFNNode lfn(buff);
+//		lfnList.push_back(lfn);
+//		fread(buff, sizeof(char), inode_size, fp);
+//		if (buff[0x0b] != 0x0f) break;
+//	}
+//	Inode* child = new Inode(buff);
+//	child->set_lfn(lfnList);
+//	node->children.push_back(child);
+//}
 
 void FsFat32::show_node(Inode* node)
 {
@@ -236,7 +288,7 @@ bool FsFat32::export_to(string path)
 		}
 
 		file_size -= br->cluster_size;
-		cluster_num = fat[0]->get_next_entry(cluster_num);
+		cluster_num = fat[0]->get_fat_entry(cluster_num);
 		if (!cluster_num) break;
 	}
 
@@ -246,7 +298,7 @@ bool FsFat32::export_to(string path)
 
 Inode* FsFat32::get_node(Inode* node, vector<string> pathList)
 {
-	if (!node->file_name.compare(pathList[0])) 
+	if (!node->file_name.compare(pathList[0]))
 		return NULL;
 
 	pathList.erase(pathList.begin());
@@ -255,8 +307,9 @@ Inode* FsFat32::get_node(Inode* node, vector<string> pathList)
 	for (int i = 0; i < node->children.size(); i++)
 	{
 		Inode* child_node = get_node(node->children[i], pathList);
-		if (child_node != NULL) 
+		if (child_node != NULL)
 			return child_node;
 	}
+	return NULL;
 }
 

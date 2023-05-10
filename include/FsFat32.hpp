@@ -13,6 +13,7 @@
 #include "LFNNode.hpp"
 #include "FsInfo.hpp"
 #include "fat32_enum.hpp"
+#include "Cluster.hpp"
 
 class FsFat32
 {
@@ -39,6 +40,6 @@ private:
 	bool expand_all(Inode* parent);
 	bool expand(Inode* node);
 	void show_node(Inode* node);
-
+	unsigned int get_cluster_offset(int cluster_num);
 	Inode* get_node(Inode* node, vector<string> pathList);
 };

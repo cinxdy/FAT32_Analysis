@@ -54,6 +54,5 @@ public:
 	uint32_t fat_area_size;
 
 	uint32_t data_area_offset;
-
 };
 

@@ -7,7 +7,7 @@ using namespace std;
 int main(int argc, char** argv)
 {
 	string path;
-	if (argc == 1) path = "C:/Users/user/Documents/GitHub/FAT32_Analysis/FAT32_image.mdf";
+	if (argc == 1) path = "C:/Users/user/Documents/GitHub/FAT32_Analysis/FAT32_simple.mdf";
 	else path = argv[1];
 
 	// open an image file
