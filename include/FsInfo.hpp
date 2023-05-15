@@ -7,7 +7,7 @@ using namespace std;
 class FsInfo
 {
 public:
-	FsInfo(uint8_t* buffer);
+	FsInfo(uint8_t* buffer, int size);
 	~FsInfo();
 	uint32_t signature1;
 	uint32_t signature2;

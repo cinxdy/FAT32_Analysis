@@ -1,9 +1,9 @@
 
 #include "FsInfo.hpp"
 
-FsInfo::FsInfo(uint8_t* buffer)
+FsInfo::FsInfo(uint8_t* buffer, int size)
 {
-	ByteBuffer2 bb(buffer);
+	ByteBuffer2 bb(buffer, size);
 	signature1 = bb.get_uint32_le();
 	bb.skip(30);
 	signature2 = bb.get_uint32_le();

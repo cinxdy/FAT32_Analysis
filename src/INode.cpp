@@ -1,9 +1,9 @@
 #include "Inode.hpp"
 #include <iostream>
 
-Inode::Inode(uint8_t* buffer)
+Inode::Inode(uint8_t* buffer, int size)
 {
-	ByteBuffer2 bb(buffer);
+	ByteBuffer2 bb(buffer, size);
 
 	// file_name
 	file_name = bb.get_ascii(8);

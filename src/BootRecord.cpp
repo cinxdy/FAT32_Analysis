@@ -1,8 +1,8 @@
 #include "BootRecord.hpp"
 
-BootRecord::BootRecord(uint8_t* buffer)
+BootRecord::BootRecord(uint8_t* buffer, int size)
 {
-	ByteBuffer2 bb(buffer);
+	ByteBuffer2 bb(buffer, size);
 
 	// 0x00
 	jump_boot_code = bb.get_uint24_le();

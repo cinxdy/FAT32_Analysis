@@ -30,11 +30,12 @@ public:
 	vector<Inode*> children;
 	bool not_active;
 
+	Inode(uint8_t* buffer, int size);
+	~Inode();
+	
 	void trim_space(string* text);
 
 	FILE_NAME_TYPE get_file_name_type(string* file_name);
-	Inode(uint8_t* buffer);
-	~Inode();
 
 	ATTR get_attr(uint8_t attr);
 	bool has_child();

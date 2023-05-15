@@ -1,9 +1,8 @@
 #include "Fat.hpp"
 
-Fat::Fat(uint8_t* buffer)
+Fat::Fat(uint8_t* buffer, int size)
 {
-	ByteBuffer2 bb(buffer);
-	auto size = _msize(buffer);
+	ByteBuffer2 bb(buffer, size);
 
 	total_entry_cnt = size / 4;
 	Fat_table = new uint32_t[total_entry_cnt];

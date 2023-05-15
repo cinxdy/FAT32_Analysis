@@ -1,4 +1,6 @@
 /src/*.a
 /out
 /.vs
+/build
+*.mdf
 

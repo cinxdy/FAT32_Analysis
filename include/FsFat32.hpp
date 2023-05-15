@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <string>
 #include <stdio.h>
+#include <fstream>
+#include <iostream>
 
 #include "byte_buffer2.hpp"
 #include "BootRecord.hpp"
@@ -13,14 +15,13 @@
 #include "LFNNode.hpp"
 #include "FsInfo.hpp"
 #include "fat32_enum.hpp"
-#include "Cluster.hpp"
 
 class FsFat32
 {
 	static const unsigned int sector_size = 0x200;
 	static const unsigned int inode_size = 0x20;
 public:
-	FILE* fp;
+	ifstream ifs;
 	BootRecord* br;
 	FsInfo* fs_info;
 	Fat** fat;
@@ -28,14 +29,15 @@ public:
 	Inode* node_hash;
 
 public:
-	FsFat32(FILE* fp);
+	FsFat32(string file_name);
 	~FsFat32();
 	void show_all(Inode* parent, vector<Inode*> visited);
 	bool export_to(string path);
 	bool build_file_system();
+	void close();
 
 private:
-	uint8_t* read_file_to_buffer(FILE* fp, int offset, int size);
+	uint8_t* read_file_to_buffer(uint32_t offset, uint32_t size);
 	bool expand_all();
 	bool expand_all(Inode* parent);
 	bool expand(Inode* node);

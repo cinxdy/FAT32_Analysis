@@ -9,7 +9,7 @@ using namespace std;
 class BootRecord
 {
 public:
-	BootRecord(uint8_t* buffer);
+	BootRecord(uint8_t* buffer, int size);
 	bool is_valid();
 
 	uint32_t jump_boot_code;

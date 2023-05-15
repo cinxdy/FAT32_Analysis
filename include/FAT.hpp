@@ -8,7 +8,7 @@ using namespace std;
 class Fat
 {
 public:
-	Fat(uint8_t* buffer);
+	Fat(uint8_t* buffer, int size);
 	~Fat();
 
 	uint32_t get_fat_entry(int entry_num);

@@ -9,7 +9,7 @@ add_library(${TARGET_NAME}
   Inode.cpp
   LFNNode.cpp
   DosDateTime.cpp 
-  Cluster.cpp)
+  )
 
 target_include_directories (${TARGET_NAME}
   PUBLIC ../include

@@ -6,16 +6,13 @@ using namespace std;
 
 int main(int argc, char** argv)
 {
-	string path;
-	if (argc == 1) path = "C:/Users/user/Documents/GitHub/FAT32_Analysis/FAT32_simple.mdf";
-	else path = argv[1];
+	string path = "C:/Users/user/Documents/GitHub/FAT32_Analysis/FAT32_simple.mdf";
+	if (argc != 1) path = argv[1];
 
 	// open an image file
-	// please change from FILE to fstream
-	FILE* fp = fopen(path.c_str(), "rb");
+	FsFat32 fs(path);
 
 	// build a file system
-	FsFat32 fs(fp);
 	if (fs.build_file_system()) {
 		cout << "Successfully built a file system" << endl;
 	}
@@ -23,7 +20,6 @@ int main(int argc, char** argv)
 		cout << "Error occured while building a file system" << endl;
 		return 0;
 	}
-	fclose(fp);
 
 	//
 	bool ing = true;
